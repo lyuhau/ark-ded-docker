@@ -1,6 +1,5 @@
-FROM cm2network/steamcmd:latest
+FROM lyuhau/ark-ded:base
 
-RUN ./steamcmd.sh +login anonymous +app_update 376030 +quit
 EXPOSE 27015/udp
 EXPOSE 7777/udp
 EXPOSE 7778/udp
