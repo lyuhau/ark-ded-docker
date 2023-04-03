@@ -1,0 +1,105 @@
+name: ci-manual
+
+on:
+  workflow_dispatch:
+    inputs:
+      base:
+        description: Build base build
+        required: false
+        default: false
+        type: boolean
+      fresh:
+        description: Run fresh build
+        required: false
+        default: false
+        type: boolean
+      incremental:
+        description: Run incremental build
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  get-timeupdated:
+    name: Get TIMEUPDATED
+    uses: ./.github/workflows/steamcmd-appinfo.yml
+    with:
+      appid: 376030
+      jsonpath: .data."376030".depots.branches.arklive.buildid
+
+
+  # base
+
+  build-and-push-base:
+    name: Base build and push
+    if: inputs.base
+    uses: ./.github/workflows/docker-build-and-push.yml
+    secrets: inherit
+    with:
+      file: ./base.Dockerfile
+      tags: lyuhau/ark-ded:base
+
+  update-last_build_timeupdated-base:
+    name: Update LAST_BUILD_TIMEUPDATED
+    needs: [get-timeupdated, build-and-push-base]
+    if: always() && !contains(needs.*.result, 'failure')
+    uses: ./.github/workflows/update-repository-variable.yml
+    with:
+      name: BASE_LAST_BUILD_TIMEUPDATED
+      value: ${{ needs.get-timeupdated.outputs.value }}
+    secrets:
+      GITHUB_ACCESS_TOKEN: ${{ secrets.WRITEBACK_TOKEN }}
+
+
+  # fresh
+
+  build-and-push-fresh:
+    name: Fresh build and push
+    needs: build-and-push-base
+    if: always() && inputs.fresh && !contains(needs.*.result, 'failure')
+    uses: ./.github/workflows/docker-build-and-push.yml
+    with:
+      context: .
+      file: ./fresh.Dockerfile
+      tags: lyuhau/ark-ded:incremental,lyuhau/ark-ded:latest
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_ACCESS_TOKEN: ${{ secrets.DOCKERHUB_ACCESS_TOKEN }}
+
+  update-last_build_timeupdated-fresh-incremental:
+    name: Update LAST_BUILD_TIMEUPDATED
+    needs: [get-timeupdated, build-and-push-fresh]
+    if: always() && !contains(needs.*.result, 'failure')
+    uses: ./.github/workflows/update-repository-variable.yml
+    strategy:
+      matrix:
+        variable_name: [FRESH_LAST_BUILD_TIMEUPDATED, INCREMENTAL_LAST_BUILD_TIMEUPDATED]
+    with:
+      name: ${{ matrix.variable_name }}
+      value: ${{ needs.get-timeupdated.outputs.value }}
+    secrets:
+      GITHUB_ACCESS_TOKEN: ${{ secrets.WRITEBACK_TOKEN }}
+
+
+  # incremental
+
+  build-and-push-incremental:
+    name: Incremental build and push
+    if: inputs.incremental
+    uses: ./.github/workflows/docker-build-and-push.yml
+    with:
+      file: ./incremental.Dockerfile
+      tags: lyuhau/ark-ded:incremental,lyuhau/ark-ded:latest
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_ACCESS_TOKEN: ${{ secrets.DOCKERHUB_ACCESS_TOKEN }}
+
+  update-last_build_timeupdated:
+    name: Update LAST_BUILD_TIMEUPDATED incremental
+    needs: [get-timeupdated, build-and-push-incremental]
+    uses: ./.github/workflows/update-repository-variable.yml
+    with:
+      name: INCREMENTAL_LAST_BUILD_TIMEUPDATED
+      value: ${{ needs.get-timeupdated.outputs.value }}
+    secrets:
+      GITHUB_ACCESS_TOKEN: ${{ secrets.WRITEBACK_TOKEN }}
