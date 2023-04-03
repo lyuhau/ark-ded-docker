@@ -12,19 +12,36 @@ jobs:
       appid: 376030
       jsonpath: .data."376030".depots.branches.arklive.buildid
 
+
+  # base
+
   build-and-push-base:
     name: Base build and push
     needs: get-timeupdated
-    if: needs.get-timeupdated.outputs.value > vars.FRESH_LAST_BUILD_TIMEUPDATED
+    if: needs.get-timeupdated.outputs.value > vars.BASE_LAST_BUILD_TIMEUPDATED
     uses: ./.github/workflows/docker-build-and-push.yml
     secrets: inherit
     with:
       file: ./base.Dockerfile
       tags: lyuhau/ark-ded:base
 
+  update-last_build_timeupdated-base:
+    name: Update LAST_BUILD_TIMEUPDATED base
+    needs: [get-timeupdated, build-and-push-base]
+    uses: ./.github/workflows/update-repository-variable.yml
+    with:
+      name: BASE_LAST_BUILD_TIMEUPDATED
+      value: ${{ needs.get-timeupdated.outputs.value }}
+    secrets:
+      GITHUB_ACCESS_TOKEN: ${{ secrets.WRITEBACK_TOKEN }}
+
+
+  # fresh
+
   build-and-push-fresh:
     name: Fresh build and push
     needs: build-and-push-base
+    if: needs.get-timeupdated.outputs.value > vars.FRESH_LAST_BUILD_TIMEUPDATED
     uses: ./.github/workflows/docker-build-and-push.yml
     with:
       context: .
@@ -34,12 +51,15 @@ jobs:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_ACCESS_TOKEN: ${{ secrets.DOCKERHUB_ACCESS_TOKEN }}
 
-  update-last_build_timeupdated:
-    name: Update LAST_BUILD_TIMEUPDATED
+  update-last_build_timeupdated-fresh-incremental:
+    name: Update LAST_BUILD_TIMEUPDATED fresh and incremental
     needs: [get-timeupdated, build-and-push-fresh]
     uses: ./.github/workflows/update-repository-variable.yml
+    strategy:
+      matrix:
+        variable_name: [FRESH_LAST_BUILD_TIMEUPDATED, INCREMENTAL_LAST_BUILD_TIMEUPDATED]
     with:
-      name: FRESH_LAST_BUILD_TIMEUPDATED
+      name: ${{ matrix.variable_name }}
       value: ${{ needs.get-timeupdated.outputs.value }}
     secrets:
       GITHUB_ACCESS_TOKEN: ${{ secrets.WRITEBACK_TOKEN }}
