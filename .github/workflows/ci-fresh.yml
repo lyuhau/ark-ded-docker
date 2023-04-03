@@ -5,8 +5,17 @@ on:
     - cron: "0 8 1 * *"  # first of the month at 8 am UTC (3 am EST)
 
 jobs:
+  get-timeupdated:
+    name: Get TIMEUPDATED
+    uses: ./.github/workflows/steamcmd-appinfo.yml
+    with:
+      appid: 376030
+      jsonpath: .data."376030".depots.branches.arklive.buildid
+
   build-and-push-base:
     name: Base build and push
+    needs: get-timeupdated
+    if: needs.get-timeupdated.outputs.value > vars.FRESH_LAST_BUILD_TIMEUPDATED
     uses: ./.github/workflows/docker-build-and-push.yml
     secrets: inherit
     with:
@@ -24,3 +33,13 @@ jobs:
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_ACCESS_TOKEN: ${{ secrets.DOCKERHUB_ACCESS_TOKEN }}
+
+  update-last_build_timeupdated:
+    name: Update LAST_BUILD_TIMEUPDATED
+    needs: [get-timeupdated, build-and-push-fresh]
+    uses: ./.github/workflows/update-repository-variable.yml
+    with:
+      name: FRESH_LAST_BUILD_TIMEUPDATED
+      value: ${{ needs.get-timeupdated.outputs.value }}
+    secrets:
+      GITHUB_ACCESS_TOKEN: ${{ secrets.WRITEBACK_TOKEN }}

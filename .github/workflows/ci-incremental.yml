@@ -6,21 +6,11 @@ on:
 
 jobs:
   get-timeupdated:
-    name: Check update needed
-    runs-on: ubuntu-latest
-    outputs:
-      value: ${{ steps.timeupdated.outputs.value }}
-    steps:
-      -
-        name: Get appinfo
-        id: appinfo
-        run: curl 'https://api.steamcmd.net/v1/info/376030' -o appinfo.json
-      -
-        name: Extract timeupdated
-        id: timeupdated
-        uses: sergeysova/jq-action@v2
-        with:
-          cmd: jq -r '.data."376030".depots.branches.arklive.buildid' appinfo.json
+    name: Get TIMEUPDATED
+    uses: ./.github/workflows/steamcmd-appinfo.yml
+    with:
+      appid: 376030
+      jsonpath: .data."376030".depots.branches.arklive.buildid
 
   build-and-push-incremental:
     name: Incremental build and push

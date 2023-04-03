@@ -1,0 +1,29 @@
+name: steamcmd-appinfo
+
+on:
+  workflow_call:
+    inputs:
+      appid:
+        required: true
+        type: string
+      jsonpath:
+        default: .
+        type: string
+
+jobs:
+  get-steamcmd-appinfo:
+    name: Fetch app information via SteamCMD API
+    runs-on: ubuntu-latest
+    outputs:
+      value: ${{ steps.jsonpath.outputs.value }}
+    steps:
+      -
+        name: Get appinfo
+        id: appinfo
+        run: curl 'https://api.steamcmd.net/v1/info/${{ inputs.appid }}' -o appinfo.json
+      -
+        name: Extract jsonpath
+        id: jsonpath
+        uses: sergeysova/jq-action@v2
+        with:
+          cmd: jq -r '${{ inputs.jsonpath }}' appinfo.json
