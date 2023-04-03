@@ -43,3 +43,5 @@ jobs:
           file: ${{ inputs.file }}
           push: true
           tags: ${{ inputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
