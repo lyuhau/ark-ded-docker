@@ -30,6 +30,6 @@ RUN replace_spaces() { \
     chown steam:steam -R /mnt/ark-ded
 USER steam
 
-COPY server-start.sh install-mods.sh /home/steam/
+COPY init.sh server-start.sh install-mods.sh setup-mounts.sh /home/steam/
 WORKDIR /home/steam
-CMD ["/home/steam/server-start.sh"]
+CMD ["/home/steam/init.sh"]

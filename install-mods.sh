@@ -11,9 +11,11 @@ while read mod_id; do
   source_file="/home/steam/Steam/steamapps/workshop/content/346110/$mod_id"
   target_file="/home/steam/Steam/steamapps/common/ARK Survival Evolved Dedicated Server/ShooterGame/Content/Mods/$mod_id"
   if [[ ! -e "$target_file" ]]; then
-    mv "$source_file" "$target_file"
-    echo "Moved mod folder: $target_file"
+    cp -rf "$source_file" "$target_file"
+    echo "Copied mod folder: $target_file"
   else
     echo "Already exists: $target_file"
   fi
 done <<<"$mod_list"
+
+cp /mnt/ark-ded/modfiles/* "/home/steam/Steam/steamapps/common/ARK Survival Evolved Dedicated Server/ShooterGame/Content/Mods/"
